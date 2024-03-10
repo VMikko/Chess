@@ -1,0 +1,9 @@
+Main file - continuous loop, takes user input
+    - You select pieces by writing the coordinates, either in the form A1, 00
+    - Certain commands (like q for quit)
+Board
+    - Includes the board n stuff
+    - Board is made of a 2D matrix 8x8
+Pieces
+BoardSquare
+
