@@ -2,31 +2,45 @@ import pieces
 
 class Square:
     def __init__(self,):
-        self.color: int = 1
-        self.piece: pieces.Piece = pieces.Empty
-        self.coord: tuple[int, int] = None
+        self.color: int = None #0 is black, 1 is white
+        self._piece: pieces.Piece = None
+        self.coord: tuple[int, int] = None # To be defined when initializing the board
+        self.string: str = None # To be used when setting the colour of the square
 
-    def setBlack(self):
+    def setSquareBlack(self):
         self.color = 0
-    
-    def setWhite(self):
+        self.string = "■"
+    def setSquareWhite(self):
         self.color = 1
+        self.string = "□"
     
     def __str__(self) -> str:
-        if self.piece == pieces.Empty:
-            if self.color == 1:
-                return "□"
-            else:
-                return "■"
+        if self._piece:
+            return f'{self.piece}'
         else:
-            return f"{self.piece}"
+            return self.string
+
+    def isEmpty(self) -> bool:
+        return not (self.piece)
+
+    def getPiece(self) -> pieces.Piece:
+        return self._piece
+
+    def setPiece(self, p: pieces.Piece):
+        self._piece = p
+
+    def removePiece(self):
+        self._piece = None
+
+    piece = property(getPiece, setPiece)
 
 #Board consists of a 8x8 matrix full of Squares
 class Chessboard:
     whitePieces: list[pieces.Piece] = []
     blackPieces: list[pieces.Piece] = []
-    whiteKingLocation: list[int] = []
-    blackKingLocation: list[int] = []
+    whiteKing: pieces.Piece = None
+    blackKing: pieces.Piece = None
+    deadPieces: list[pieces.Piece] = []
 
     def __init__(self) -> None:
         #Initializes the board full of empty squares (with proper colors)
@@ -34,12 +48,12 @@ class Chessboard:
         for i in range(8):
             for j in range(8):
                 if (j+i) % 2 == 0:
-                    self.board[i][j].setWhite()
+                    self.board[i][j].setSquareWhite()
                     self.board[i][j].coord = [j, i]
                 else:
-                    self.board[i][j].setBlack()
+                    self.board[i][j].setSquareBlack()
                     self.board[i][j].coord = [j, i]
-            
+
 
     def printBoard(self):
         for i in range(8):
@@ -55,68 +69,89 @@ class Chessboard:
         return self.board[coord[1]][coord[0]]
 
     def selectPiece(self, coord: tuple[int, int]) -> pieces.Piece:
-        return self.board[coord[1]][coord[0]].piece
-        #return self.selectSquare(coord).piece
-    
+        return self.selectSquare(coord).getPiece()
 
+
+    def killPiece(self, coord: tuple[int, int]):
+        """Kills the piece in the given coordinate, adding it to the deadPieces list
+        
+        To be used when another piece moves into the coord
+        
+        Does not check if the capture is legal (can capture your own pieces)
+        """
+        if not (self.selectSquare(coord).isEmpty()):
+            piece = self.selectPiece(coord)
+            self.deadPieces.append(piece)
+            self.removePiece(coord)
+            if (piece.color):
+                self.whitePieces.remove(piece)
+            else:
+                self.blackPieces.remove(piece)    
+            del piece # TODO: is this necessary?  
+    
+    def removePiece(self, coord: tuple[int, int]): #I should rename this to like emptySquare
+        """Sets the piece in the given coordinates to None, to be used when moving or capturing a piece
+        """
+        self.selectSquare(coord).removePiece()
+
+    def movePiece(self, origCoord: tuple[int, int], targetCoord: tuple[int, int]):
+        """Moves the piece from original coord to target coord
+        """
+        self.killPiece(targetCoord) ## Should I remove this?
+        #Does this work?
+        self.selectSquare(targetCoord).piece = self.selectPiece(origCoord)
+        self.selectPiece(targetCoord).updateLocation(targetCoord)
+        self.removePiece(origCoord)
+
+
+    def addPiece(self, p: pieces.Piece, coord: tuple[int, int], color = 1):
+        """Adds a piece to the given coordinate
+
+        color is assumed to be white if not specified (0 is black, 1 is white)
+
+        Checks if the given square is empty or not
+        """
+        if self.selectSquare(coord).isEmpty():
+            self.selectSquare(coord).setPiece(p(coord))
+            self.selectPiece(coord).setColor(color)
+            #self.selectPiece(coord).color = color
+            if color == 0:
+                self.blackPieces.append(self.selectPiece(coord))
+            else:
+                self.whitePieces.append(self.selectPiece(coord))
+                
+            
+        
         
 
     def setBoard(self):
         #Pawns
         for y in (1, 6):
             for x in range(8):
-                #Testing stuff, didnt work
-                #piece = self.selectSquare([x,y]).piece
-                self.board[y][x].piece = pieces.Pawn((x, y))
                 if (y == 1):
-                    #self.board[y][x].piece.setBlack()
-                    #piece.setBlack()
-                    #self.selectSquare([x,y]).piece.setBlack()
-                    self.selectPiece([x,y]).setBlack()
-                    self.blackPieces.append(self.selectPiece([x,y]))
+                    self.addPiece(pieces.Pawn, [x,y], 0)
                 else:
-                    self.whitePieces.append((self.selectPiece([x,y])))
-        
+                    self.addPiece(pieces.Pawn, [x,y], 1)
+                    
         #Other stuff
+        
         for y in (0, 7):
             #Rooks
             for x in (0, 7):
-                self.board[y][x].piece = pieces.Rook((x,y))
-                if (y == 0):
-                    self.selectPiece([x,y]).setBlack()
-                    self.blackPieces.append(self.selectPiece([x,y]))
-                else:
-                    self.whitePieces.append(self.selectPiece([x,y]))
+                self.addPiece(pieces.Rook, [x,y], y)
             #Knights
             for x in (1, 6):
-                self.board[y][x].piece = pieces.Knight((x,y))
-                if (y == 0):
-                    self.selectPiece([x,y]).setBlack()
-                    self.blackPieces.append(self.selectPiece([x,y]))
-                else:
-                    self.whitePieces.append(self.selectPiece([x,y]))
+                self.addPiece(pieces.Knight, [x,y], y)
             #Bishops
             for x in (2, 5):
-                self.board[y][x].piece = pieces.Bishop((x,y))
-                if (y == 0):
-                    self.selectPiece([x,y]).setBlack()
-                    self.blackPieces.append(self.selectPiece([x,y]))
-                else:
-                    self.whitePieces.append(self.selectPiece([x,y]))
+                self.addPiece(pieces.Bishop, [x,y], y)
 
         # Queens
-        self.board[0][4].piece = pieces.Queen((0,4))
-        self.selectPiece([4,0]).setBlack()
-        self.blackPieces.append(self.selectPiece([4,0]))
-        self.board[7][3].piece = pieces.Queen((7,3))
-        self.whitePieces.append(self.selectPiece([3,7]))
+        self.addPiece(pieces.Queen, [4,0], 0)
+
+        self.addPiece(pieces.Queen, [3,7], 1)
         #Kings
-        self.board[0][3].piece = pieces.King((0,3))
-        self.board[0][3].piece.setBlack()
-        self.blackPieces.append(self.selectPiece([3,0]))
-        #This should always update automatically as the king moves, I hope.
-        self.blackKingLocation = self.selectPiece([3,0]).coord
-        self.board[7][4].piece = pieces.King((7,4))
-        self.whitePieces.append(self.selectPiece([4,0]))
-        self.whiteKingLocation = self.selectPiece([4,7]).coord
-        #TODO: Make sure the kings' locations always update when they get moved
+        self.addPiece(pieces.King, [3,0], 0)
+        self.blackKing = self.selectPiece([3,0])
+        self.addPiece(pieces.King, [4,7], 1)
+        self.whiteKing = self.selectPiece([4,7])

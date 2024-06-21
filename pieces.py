@@ -2,21 +2,32 @@ from abc import ABC, abstractmethod
 
 class Piece(ABC):
     def __init__(self, coord: list[int, int]) -> None:
-        self.color = 1
-        self.coord = coord
+        self._color: int = 1
+        self._coord: list[int, int] = coord
 
-    def setWhite(self):
-        self.color = 1
-    def setBlack(self):
-        self.color = 0
+    def getColor(self) -> int:
+        return self._color
+    
 
-    #This doesn't work?
-    def location(self) -> list[int]:
-        return self.coord
+    def setColor(self, color = 1):
+        """If color is anything but 0, set it white (1)
+        Else if its 0, set it to black (0)"""
+        if color == 0:
+            self._color = 0
+        else:
+            self._color = 1
+    
+    def location(self) -> tuple[int]:
+        return self._coord
 
-    #@abstractmethod
-    #def possibleMoves(self):
-     #   pass
+    def updateLocation(self, coord: tuple[int]):
+        self._coord = coord
+
+    def __str__(self):
+        f'{self.getColor()} at {self.location()}'
+
+    color = property(getColor, setColor)
+    coord = property(location, updateLocation)
     
 
 class Pawn(Piece):
@@ -29,8 +40,6 @@ class Pawn(Piece):
 class Empty(Piece):
     def __init__(self):
         self.color = 1
-
-
     def __str__(self):
         return "empty"
 
@@ -45,9 +54,9 @@ class Rook(Piece):
 class Knight(Piece):
     def __str__(self):
         if self.color == 1:
-            return "K"
+            return "N"
         else:
-            return "k"
+            return "n"
 
 class Bishop(Piece):
     def __str__(self):
@@ -66,8 +75,8 @@ class Queen(Piece):
 class King(Piece):
     def __str__(self):
         if self.color ==1:
-            return "G"
+            return "K"
         else:
-            return "g"
+            return "k"
         
         

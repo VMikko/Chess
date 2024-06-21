@@ -1,12 +1,7 @@
-import board
-
+import game
 
 def main():
-    gameboard = board.Chessboard()
-    gameboard.setBoard()
-    gameboard.printBoard()
-    print(gameboard.blackKingLocation)
-    
+    chessgame = game.ChessGame()
 
 if __name__ == "__main__":
     main()
